@@ -50,8 +50,8 @@ define consul_template::watch (
 
   concat::fragment { $frag_name:
     target  => 'consul-template/config.json',
-    content => "template {\n  source = \"${source_name}\"\n  destination = \"${destination}\"\n  command = \"${command}\"\n  perms = ${perms}\n}\n\n",
-    order   => '10',
+    content => template('consul_template/template-json.erb'),
+    order   => '90',
     notify  => Service['consul-template']
   }
 }

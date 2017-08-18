@@ -1,0 +1,105 @@
+# This denotes the start of the configuration section for Vault. All values
+# contained in this section pertain to Vault.
+vault {
+  # This is the address of the Vault leader. The protocol (http(s)) portion
+  # of the address is required.
+  address = "<%= @consul_template::vault_address %>"
+
+  # This is the grace period between lease renewal and secret re-acquisition.
+  # When renewing a secret, if the remaining lease is less than or equal to the
+  # configured grace, Consul Template will request a new credential. This
+  # prevents Vault from revoking the credential at expiration and Consul
+  # Template having a stale credential.
+  #
+  # Note: If you set this to a value that is higher than your default TTL or
+  # max TTL, Consul Template will always read a new secret!
+  grace = "15s"
+
+  # This is the token to use when communicating with the Vault server.
+  # Like other tools that integrate with Vault, Consul Template makes the
+  # assumption that you provide it with a Vault token; it does not have the
+  # incorporated logic to generate tokens via Vault's auth methods.
+  #
+  # This value can also be specified via the environment variable VAULT_TOKEN.
+  token = "<%= @consul_template::vault_token %>"
+
+  # This tells Consul Template that the provided token is actually a wrapped
+  # token that should be unwrapped using Vault's cubbyhole response wrapping
+  # before being used. Please see Vault's cubbyhole response wrapping
+  # documentation for more information.
+  unwrap_token = true
+
+  # This option tells Consul Template to automatically renew the Vault token
+  # given. If you are unfamiliar with Vault's architecture, Vault requires
+  # tokens be renewed at some regular interval or they will be revoked. Consul
+  # Template will automatically renew the token at half the lease duration of
+  # the token. The default value is true, but this option can be disabled if
+  # you want to renew the Vault token using an out-of-band process.
+  #
+  # Note that secrets specified in a template (using {{secret}} for example)
+  # are always renewed, even if this option is set to false. This option only
+  # applies to the top-level Vault token itself.
+  renew_token = true
+
+  # This section details the retry options for connecting to Vault. Please see
+  # the retry options in the Consul section for more information (they are the
+  # same).
+  retry {
+    # This enabled retries. Retries are enabled by default, so this is
+    # redundant.
+    enabled = true
+
+    # This specifies the number of attempts to make before giving up. Each
+    # attempt adds the exponential backoff sleep time. Setting this to
+    # zero will implement an unlimited number of retries
+    attempts = 12
+
+    # This is the base amount of time to sleep between retry attempts. Each
+    # retry sleeps for an exponent of 2 longer than this base. For 5 retries,
+    # the sleep times would be: 250ms, 500ms, 1s, 2s, then 4s.
+    backoff = "250ms"
+
+    # This is the maximum amount of time to sleep between retry attempts.
+    # When max_backoff is set to zero, there is no upper limit to the
+    # exponential sleep between retry attempts.
+    # If max_backoff is set to 10s and backoff is set to 1s, sleep times    # would be: 1s, 2s, 4s, 8s, 10s, 10s, ...
+    max_backoff = "1m"
+  }
+
+<% if @consul_template::vault_ssl -%>
+  # This section details the SSL options for connecting to the Vault server.
+  # Please see the SSL options in the Consul section for more information (they
+  # are the same).
+  ssl {
+    # This enables SSL. Specifying any option for SSL will also enable it.
+    enabled = true
+
+    # This enables SSL peer verification. The default value is "true", which
+    # will check the global CA chain to make sure the given certificates are
+    # valid. If you are using a self-signed certificate that you have not added
+    # to the CA chain, you may want to disable SSL verification. However, please
+    # understand this is a potential security vulnerability.
+    verify = <%= @consul_template::vault_ssl_verify %>
+
+    # This is the path to the certificate to use to authenticate. If just a
+    # certificate is provided, it is assumed to contain both the certificate and
+    # the key to convert to an X509 certificate. If both the certificate and
+    # key are specified, Consul Template will automatically combine them into an
+    # X509 certificate for you.
+    cert = "<%= @consul_template::vault_ssl_cert %>"
+    key  = "<%= @consul_template::vault_ssl_key %>"
+
+    # This is the path to the certificate authority to use as a CA. This is
+    # useful for self-signed certificates or for organizations using their own
+    # internal certificate authority.
+    ca_cert = "<%= @consul_template::vault_ssl_ca_cert %>"
+
+    # This is the path to a directory of PEM-encoded CA cert files. If both
+    # `ca_cert` and `ca_path` is specified, `ca_cert` is preferred.
+    ca_path = "<%= @consul_template::vault_ssl_ca_path %>"
+
+    # This sets the SNI server name to use for validation.
+    server_name = "<%= @consul_template::vault_ssl_servername %>"
+  }
+<% end -%>
+}
